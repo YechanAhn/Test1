@@ -9,6 +9,7 @@ import { SMSListener } from './services/SMSListener';
 import { KakaoMessageReader } from './services/KakaoMessageReader';
 import { NotificationService } from './services/NotificationService';
 import { CalendarService } from './services/CalendarService';
+import { HybridParser } from './services/HybridParser';
 import { useCalendarStore } from './hooks/useCalendarStore';
 import { CalendarEvent, ParsedSchedule } from './types';
 
@@ -16,6 +17,13 @@ const smsListener = new SMSListener();
 const kakaoReader = new KakaoMessageReader();
 const notificationService = new NotificationService();
 const calendarService = new CalendarService();
+
+// 하이브리드 파서: 규칙 기반 우선, 신뢰도 낮으면 LLM 폴백
+const hybridParser = new HybridParser({
+  llmApiKey: process.env.ANTHROPIC_API_KEY,
+  confidenceThreshold: 0.6,
+  enableLLM: !!process.env.ANTHROPIC_API_KEY,
+});
 
 const App: React.FC = () => {
   const {
