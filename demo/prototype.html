@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>우리 캘린더 - 부부 공유 캘린더 앱</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* 폰 프레임 */
+  .phone-frame {
+    width: 375px;
+    height: 812px;
+    background: #fff;
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+    position: relative;
+    border: 8px solid #1a1a2e;
+  }
+
+  .status-bar {
+    height: 44px;
+    background: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 28px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #2D3436;
+  }
+
+  .screen-content {
+    height: calc(100% - 44px - 64px);
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+
+  .screen-content::-webkit-scrollbar { display: none; }
+
+  /* 탭바 */
+  .tab-bar {
+    height: 64px;
+    background: #fff;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding-bottom: 8px;
+  }
+
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .tab-item .tab-icon { font-size: 22px; margin-bottom: 2px; }
+  .tab-item .tab-label { font-size: 10px; font-weight: 600; color: #B2BEC3; }
+  .tab-item.active .tab-label { color: #4A90D9; }
+  .tab-item.active .tab-icon { transform: scale(1.1); }
+
+  .tab-badge {
+    position: absolute;
+    top: 4px;
+    right: calc(50% - 18px);
+    background: #FF6B6B;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 스크린들 */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ===== 캘린더 화면 ===== */
+  .cal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .cal-header h1 { font-size: 22px; font-weight: 700; color: #2D3436; }
+
+  .partner-badge {
+    font-size: 12px;
+    color: #4A90D9;
+    background: #E8F4FD;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+
+  .month-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+  }
+
+  .month-nav button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #636E72;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+
+  .month-nav button:hover { background: #f0f0f0; }
+  .month-title { font-size: 18px; font-weight: 700; color: #2D3436; }
+
+  .weekday-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 0 10px;
+    margin-bottom: 4px;
+  }
+
+  .weekday-header span {
+    text-align: center;
+    font-size: 12px;
+    color: #636E72;
+    font-weight: 600;
+  }
+
+  .weekday-header span:first-child { color: #FF6B6B; }
+  .weekday-header span:last-child { color: #45B7D1; }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 0 10px;
+    gap: 2px;
+  }
+
+  .day-cell {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .day-cell:hover { background: #f8f9fa; }
+  .day-cell.today { border: 2px solid #4A90D9; }
+  .day-cell.selected { background: #4A90D9; }
+  .day-cell.selected .day-num { color: #fff; }
+  .day-num { font-size: 14px; font-weight: 500; color: #2D3436; }
+  .day-cell.sunday .day-num { color: #FF6B6B; }
+  .day-cell.saturday .day-num { color: #45B7D1; }
+
+  .day-dots {
+    display: flex;
+    gap: 2px;
+    margin-top: 2px;
+    position: absolute;
+    bottom: 6px;
+  }
+
+  .day-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+  }
+
+  .event-list {
+    border-top: 1px solid #f0f0f0;
+    padding: 14px 20px;
+    margin-top: 8px;
+  }
+
+  .event-list h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #2D3436;
+    margin-bottom: 10px;
+  }
+
+  .event-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    border-left: 4px solid;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .event-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .event-category { font-size: 11px; color: #636E72; }
+
+  .auto-tag {
+    font-size: 10px;
+    color: #4A90D9;
+    background: #E8F4FD;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .event-title { font-size: 15px; font-weight: 600; color: #2D3436; margin-bottom: 3px; }
+  .event-time { font-size: 12px; color: #636E72; }
+  .event-location { font-size: 12px; color: #636E72; }
+  .event-creator { font-size: 10px; color: #B2BEC3; margin-top: 4px; }
+  .no-events { color: #B2BEC3; text-align: center; padding: 30px 0; font-size: 14px; }
+
+  /* ===== 감지됨 화면 ===== */
+  .pending-header {
+    padding: 20px;
+    background: #fff;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .pending-header h1 { font-size: 22px; font-weight: 700; color: #2D3436; }
+  .pending-header p { font-size: 13px; color: #636E72; margin-top: 4px; }
+
+  .pending-list { padding: 14px; }
+
+  .pending-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    animation: slideIn 0.3s ease;
+  }
+
+  .source-tag {
+    display: inline-block;
+    font-size: 11px;
+    color: #4A90D9;
+    background: #E8F4FD;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+  }
+
+  .pending-title { font-size: 17px; font-weight: 700; color: #2D3436; margin-bottom: 4px; }
+  .pending-date { font-size: 13px; color: #636E72; }
+  .pending-location { font-size: 13px; color: #636E72; }
+
+  .original-msg {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 10px;
+  }
+
+  .original-label { font-size: 10px; color: #B2BEC3; margin-bottom: 3px; }
+  .original-text { font-size: 12px; color: #636E72; line-height: 1.5; }
+
+  .action-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .btn-dismiss {
+    padding: 10px 20px;
+    border-radius: 10px;
+    background: #f0f0f0;
+    border: none;
+    font-size: 13px;
+    color: #636E72;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-dismiss:hover { background: #e0e0e0; }
+
+  .btn-confirm {
+    padding: 10px 20px;
+    border-radius: 10px;
+    background: #4A90D9;
+    border: none;
+    font-size: 13px;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-confirm:hover { background: #3a7bc8; }
+
+  .confidence-bar {
+    height: 3px;
+    background: #f0f0f0;
+    border-radius: 2px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+
+  .confidence-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s;
+  }
+
+  /* ===== 파트너 화면 ===== */
+  .partner-header {
+    padding: 20px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .partner-header h1 { font-size: 22px; font-weight: 700; color: #2D3436; }
+  .partner-header p { font-size: 13px; color: #636E72; margin-top: 4px; }
+
+  .partner-section { padding: 20px; }
+  .section-title { font-size: 16px; font-weight: 700; color: #2D3436; margin-bottom: 4px; }
+  .section-desc { font-size: 12px; color: #636E72; margin-bottom: 16px; }
+
+  .btn-create {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    background: #4A90D9;
+    border: none;
+    font-size: 15px;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-create:hover { background: #3a7bc8; transform: translateY(-1px); }
+
+  .code-display {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    animation: slideIn 0.4s ease;
+  }
+
+  .code-label { font-size: 12px; color: #636E72; margin-bottom: 6px; }
+
+  .code-text {
+    font-size: 32px;
+    font-weight: 800;
+    color: #4A90D9;
+    letter-spacing: 6px;
+  }
+
+  .code-hint { font-size: 11px; color: #B2BEC3; margin-top: 8px; }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    margin: 4px 0;
+  }
+
+  .divider-line { flex: 1; height: 1px; background: #f0f0f0; }
+  .divider-text { font-size: 12px; color: #B2BEC3; margin: 0 12px; }
+
+  .code-input-row { display: flex; gap: 10px; }
+
+  .code-input {
+    flex: 1;
+    background: #f8f9fa;
+    border: 2px solid #f0f0f0;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-align: center;
+    text-transform: uppercase;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .code-input:focus { border-color: #4A90D9; }
+
+  .btn-join {
+    padding: 14px 24px;
+    border-radius: 12px;
+    background: #2D3436;
+    border: none;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-join:hover { background: #1a1a2e; }
+
+  /* 연결 완료 상태 */
+  .connected-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 40px;
+  }
+
+  .avatar-pair { display: flex; align-items: center; margin-bottom: 24px; }
+
+  .avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .avatar-me { background: #4A90D9; }
+  .avatar-partner { background: #FF6B6B; }
+
+  .heart {
+    margin: 0 14px;
+    font-size: 24px;
+    animation: heartbeat 1.5s infinite;
+  }
+
+  @keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+
+  .connected-title { font-size: 20px; font-weight: 700; color: #2D3436; margin-bottom: 6px; }
+  .connected-sub { font-size: 14px; color: #636E72; }
+
+  /* ===== 설정 화면 ===== */
+  .settings-header {
+    padding: 20px;
+    background: #fff;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .settings-header h1 { font-size: 22px; font-weight: 700; color: #2D3436; }
+
+  .settings-section {
+    background: #fff;
+    margin-top: 12px;
+    padding: 16px 20px;
+  }
+
+  .settings-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #B2BEC3;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f8f9fa;
+  }
+
+  .setting-info { flex: 1; margin-right: 12px; }
+  .setting-label { font-size: 14px; font-weight: 600; color: #2D3436; }
+  .setting-desc { font-size: 11px; color: #636E72; margin-top: 2px; }
+
+  .toggle {
+    width: 48px;
+    height: 28px;
+    border-radius: 14px;
+    background: #DFE6E9;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s;
+  }
+
+  .toggle.on { background: #4A90D9; }
+
+  .toggle-knob {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  .toggle.on .toggle-knob { transform: translateX(20px); }
+
+  .permission-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: #f0f0f0;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: #636E72;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .permission-btn.granted { background: #E8F4FD; color: #4A90D9; }
+
+  .reminder-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+  .reminder-chip {
+    padding: 7px 14px;
+    border-radius: 20px;
+    background: #f0f0f0;
+    border: none;
+    font-size: 12px;
+    color: #636E72;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .reminder-chip.selected { background: #4A90D9; color: #fff; }
+
+  /* ===== SMS 데모 팝업 ===== */
+  .sms-demo-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: flex-end;
+    z-index: 100;
+    animation: fadeIn 0.3s;
+  }
+
+  .sms-demo-overlay.show { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .sms-demo-panel {
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    padding: 24px;
+    width: 100%;
+    animation: slideUp 0.4s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .sms-demo-panel h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #2D3436;
+    margin-bottom: 4px;
+  }
+
+  .sms-demo-panel p { font-size: 12px; color: #636E72; margin-bottom: 14px; }
+
+  .sms-message-box {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+    border: 2px solid #f0f0f0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #2D3436;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .sms-message-box:hover { border-color: #4A90D9; }
+  .sms-message-box.selected { border-color: #4A90D9; background: #E8F4FD; }
+
+  .demo-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    background: #4A90D9;
+    border: none;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: all 0.2s;
+  }
+
+  .demo-btn:hover { background: #3a7bc8; }
+  .demo-btn:disabled { background: #B2BEC3; cursor: not-allowed; }
+
+  /* 토스트 알림 */
+  .toast {
+    position: absolute;
+    top: 56px;
+    left: 16px;
+    right: 16px;
+    background: #2D3436;
+    color: #fff;
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 200;
+    display: none;
+    animation: slideDown 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+
+  .toast.show { display: block; }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* 플로팅 버튼 */
+  .fab {
+    position: absolute;
+    bottom: 80px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    background: #4A90D9;
+    border: none;
+    color: #fff;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(74,144,217,0.4);
+    transition: all 0.2s;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(74,144,217,0.5); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #B2BEC3;
+  }
+
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .empty-state p { font-size: 13px; line-height: 1.5; }
+
+  /* 프로필 */
+  .profile-row { display: flex; align-items: center; gap: 14px; }
+
+  .profile-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #4A90D9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .profile-name { font-size: 16px; font-weight: 600; color: #2D3436; }
+  .profile-email { font-size: 12px; color: #636E72; margin-top: 2px; }
+
+  /* 반응형 */
+  @media (max-width: 420px) {
+    .phone-frame {
+      width: 100%;
+      height: 100vh;
+      border-radius: 0;
+      border: none;
+    }
+    body { padding: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <!-- 상태바 -->
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>●●● WiFi 🔋</span>
+  </div>
+
+  <!-- 토스트 알림 -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ===== 캘린더 화면 ===== -->
+  <div class="screen active" id="screen-calendar">
+    <div class="screen-content">
+      <div class="cal-header">
+        <h1>우리 캘린더</h1>
+        <span class="partner-badge">💑 지수님과 공유 중</span>
+      </div>
+
+      <div class="month-nav">
+        <button onclick="changeMonth(-1)">‹</button>
+        <span class="month-title" id="month-title"></span>
+        <button onclick="changeMonth(1)">›</button>
+      </div>
+
+      <div class="weekday-header">
+        <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+      </div>
+
+      <div class="calendar-grid" id="calendar-grid"></div>
+
+      <div class="event-list" id="event-list"></div>
+    </div>
+
+    <!-- 플로팅 데모 버튼 -->
+    <button class="fab" onclick="showSMSDemo()" title="SMS 자동감지 데모">📩</button>
+  </div>
+
+  <!-- ===== 감지됨 화면 ===== -->
+  <div class="screen" id="screen-pending">
+    <div class="screen-content">
+      <div class="pending-header">
+        <h1>감지된 일정</h1>
+        <p>메시지에서 자동으로 감지된 일정입니다</p>
+      </div>
+      <div class="pending-list" id="pending-list"></div>
+    </div>
+  </div>
+
+  <!-- ===== 파트너 화면 ===== -->
+  <div class="screen" id="screen-partner">
+    <div class="screen-content" id="partner-content"></div>
+  </div>
+
+  <!-- ===== 설정 화면 ===== -->
+  <div class="screen" id="screen-settings">
+    <div class="screen-content">
+      <div class="settings-header"><h1>설정</h1></div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">내 정보</div>
+        <div class="profile-row">
+          <div class="profile-avatar">민</div>
+          <div>
+            <div class="profile-name">김민준</div>
+            <div class="profile-email">minjun@example.com</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">일정 자동 감지</div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-label">SMS 읽기 권한</div>
+            <div class="setting-desc">문자 메시지에서 일정을 자동으로 감지합니다</div>
+          </div>
+          <button class="permission-btn granted" onclick="this.classList.toggle('granted'); this.textContent = this.classList.contains('granted') ? '허용됨' : '허용하기'">허용됨</button>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-label">알림 접근 권한</div>
+            <div class="setting-desc">카카오톡 알림에서 일정을 자동으로 감지합니다</div>
+          </div>
+          <button class="permission-btn granted" onclick="this.classList.toggle('granted'); this.textContent = this.classList.contains('granted') ? '허용됨' : '허용하기'">허용됨</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">알림</div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-label">파트너 알림</div>
+            <div class="setting-desc">새 일정이 추가되면 파트너에게 알림을 보냅니다</div>
+          </div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-label">자동 확인</div>
+            <div class="setting-desc">신뢰도가 높은 일정은 자동으로 캘린더에 추가합니다</div>
+          </div>
+          <div class="toggle" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div>
+        </div>
+        <div style="padding: 12px 0;">
+          <div class="setting-label">일정 리마인더</div>
+          <div class="reminder-chips">
+            <button class="reminder-chip selected" onclick="this.classList.toggle('selected')">10분 전</button>
+            <button class="reminder-chip selected" onclick="this.classList.toggle('selected')">30분 전</button>
+            <button class="reminder-chip" onclick="this.classList.toggle('selected')">1시간 전</button>
+            <button class="reminder-chip" onclick="this.classList.toggle('selected')">2시간 전</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">정보</div>
+        <div class="setting-row"><div class="setting-label">개인정보 처리방침</div></div>
+        <div class="setting-row"><div class="setting-label">서비스 이용약관</div></div>
+        <div class="setting-row">
+          <div class="setting-label">버전</div>
+          <div style="font-size:14px;color:#B2BEC3">1.0.0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SMS 데모 팝업 -->
+  <div class="sms-demo-overlay" id="sms-demo">
+    <div class="sms-demo-panel">
+      <h3>📩 메시지 자동 감지 데모</h3>
+      <p>아래 메시지 중 하나를 선택하면 일정을 자동으로 파싱합니다</p>
+
+      <div class="sms-message-box" onclick="selectDemoMsg(this, 0)">
+        <strong>[서울대병원]</strong> 진료 예약 안내<br>
+        예약일시: 2026년 3월 15일 오후 2시 30분<br>
+        진료과: 내과<br>
+        장소: 서울대병원 본관 3층
+      </div>
+
+      <div class="sms-message-box" onclick="selectDemoMsg(this, 1)">
+        <strong>[코레일]</strong> KTX 예약확인<br>
+        2026년 3월 20일 오전 8시<br>
+        서울역 → 부산역<br>
+        좌석: 5호차 12B
+      </div>
+
+      <div class="sms-message-box" onclick="selectDemoMsg(this, 2)">
+        <strong>[준오헤어 강남점]</strong><br>
+        예약 확인: 3월 10일 오후 3시<br>
+        커트 + 염색 (담당: 이수진)
+      </div>
+
+      <button class="demo-btn" id="demo-parse-btn" onclick="parseDemoMsg()" disabled>일정 감지하기</button>
+      <button class="demo-btn" style="background:#636E72;margin-top:8px" onclick="closeSMSDemo()">닫기</button>
+    </div>
+  </div>
+
+  <!-- 탭바 -->
+  <div class="tab-bar">
+    <div class="tab-item active" onclick="switchTab('calendar')">
+      <span class="tab-icon">📅</span>
+      <span class="tab-label">캘린더</span>
+    </div>
+    <div class="tab-item" onclick="switchTab('pending')">
+      <span class="tab-icon">🔔</span>
+      <span class="tab-label">감지됨</span>
+      <div class="tab-badge" id="pending-badge" style="display:none">0</div>
+    </div>
+    <div class="tab-item" onclick="switchTab('partner')">
+      <span class="tab-icon">💑</span>
+      <span class="tab-label">파트너</span>
+    </div>
+    <div class="tab-item" onclick="switchTab('settings')">
+      <span class="tab-icon">⚙️</span>
+      <span class="tab-label">설정</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 앱 상태 =====
+const state = {
+  currentYear: 2026,
+  currentMonth: 1, // 0-indexed (Feb)
+  selectedDate: null,
+  isPartnerConnected: true,
+  pendingEvents: [],
+  events: [
+    { id: '1', title: '강남세브란스 건강검진', date: '2026-02-25', time: '09:00', category: 'hospital', location: '강남세브란스병원', source: 'sms', creator: 'me' },
+    { id: '2', title: '쿠팡 택배 도착', date: '2026-02-26', time: null, category: 'delivery', location: null, source: 'sms', creator: 'me' },
+    { id: '3', title: '결혼기념일 디너', date: '2026-02-28', time: '18:30', category: 'appointment', location: '오스테리아 레스토랑', source: 'manual', creator: 'partner' },
+    { id: '4', title: 'KB국민카드 결제일', date: '2026-02-25', time: null, category: 'payment', location: null, source: 'sms', creator: 'me' },
+    { id: '5', title: '산부인과 정기검진', date: '2026-03-03', time: '10:30', category: 'hospital', location: '미즈메디병원', source: 'kakao', creator: 'partner' },
+    { id: '6', title: '제주도 여행 출발', date: '2026-03-07', time: '07:00', category: 'travel', location: '김포공항', source: 'sms', creator: 'me' },
+  ],
+  selectedDemoMsg: null,
+};
+
+const CATEGORY_COLORS = {
+  hospital: '#FF6B6B',
+  delivery: '#4ECDC4',
+  appointment: '#45B7D1',
+  payment: '#96CEB4',
+  travel: '#FFEAA7',
+  other: '#DFE6E9',
+};
+
+const CATEGORY_LABELS = {
+  hospital: '🏥 병원',
+  delivery: '📦 택배',
+  appointment: '📋 예약',
+  payment: '💳 결제',
+  travel: '✈️ 여행',
+  other: '📌 기타',
+};
+
+const DEMO_MESSAGES = [
+  {
+    title: '서울대병원 내과 예약',
+    date: '2026-03-15',
+    time: '14:30',
+    category: 'hospital',
+    location: '서울대병원 본관 3층',
+    confidence: 0.92,
+    source: 'sms',
+    original: '[서울대병원] 진료 예약 안내\n예약일시: 2026년 3월 15일 오후 2시 30분\n진료과: 내과\n장소: 서울대병원 본관 3층',
+  },
+  {
+    title: 'KTX 서울→부산',
+    date: '2026-03-20',
+    time: '08:00',
+    category: 'travel',
+    location: '서울역',
+    confidence: 0.85,
+    source: 'sms',
+    original: '[코레일] KTX 예약확인\n2026년 3월 20일 오전 8시\n서울역 → 부산역\n좌석: 5호차 12B',
+  },
+  {
+    title: '준오헤어 강남점 예약',
+    date: '2026-03-10',
+    time: '15:00',
+    category: 'appointment',
+    location: '준오헤어 강남점',
+    confidence: 0.78,
+    source: 'kakao',
+    original: '[준오헤어 강남점]\n예약 확인: 3월 10일 오후 3시\n커트 + 염색 (담당: 이수진)',
+  },
+];
+
+// ===== 탭 전환 =====
+function switchTab(tabName) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+
+  document.getElementById(`screen-${tabName}`).classList.add('active');
+  event.currentTarget.classList.add('active');
+
+  if (tabName === 'pending') renderPendingList();
+  if (tabName === 'partner') renderPartnerScreen();
+}
+
+// ===== 캘린더 렌더링 =====
+function renderCalendar() {
+  const year = state.currentYear;
+  const month = state.currentMonth;
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+  document.getElementById('month-title').textContent = `${year}년 ${month + 1}월`;
+
+  const grid = document.getElementById('calendar-grid');
+  grid.innerHTML = '';
+
+  // 빈 칸
+  for (let i = 0; i < firstDay; i++) {
+    grid.innerHTML += '<div class="day-cell"></div>';
+  }
+
+  // 날짜
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayOfWeek = new Date(year, month, d).getDay();
+    const dayEvents = state.events.filter(e => e.date === dateStr);
+    const isToday = dateStr === todayStr;
+    const isSelected = dateStr === state.selectedDate;
+
+    let classes = 'day-cell';
+    if (dayOfWeek === 0) classes += ' sunday';
+    if (dayOfWeek === 6) classes += ' saturday';
+    if (isToday) classes += ' today';
+    if (isSelected) classes += ' selected';
+
+    let dots = '';
+    dayEvents.slice(0, 3).forEach(ev => {
+      dots += `<div class="day-dot" style="background:${CATEGORY_COLORS[ev.category]}"></div>`;
+    });
+
+    grid.innerHTML += `
+      <div class="${classes}" onclick="selectDate('${dateStr}')">
+        <span class="day-num">${d}</span>
+        <div class="day-dots">${dots}</div>
+      </div>
+    `;
+  }
+
+  // 오늘 날짜 자동 선택
+  if (!state.selectedDate) {
+    selectDate(todayStr);
+  } else {
+    renderEventList();
+  }
+}
+
+function changeMonth(delta) {
+  state.currentMonth += delta;
+  if (state.currentMonth > 11) { state.currentMonth = 0; state.currentYear++; }
+  if (state.currentMonth < 0) { state.currentMonth = 11; state.currentYear--; }
+  state.selectedDate = null;
+  renderCalendar();
+}
+
+function selectDate(dateStr) {
+  state.selectedDate = dateStr;
+  renderCalendar();
+  renderEventList();
+}
+
+function renderEventList() {
+  const container = document.getElementById('event-list');
+  if (!state.selectedDate) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const dayEvents = state.events.filter(e => e.date === state.selectedDate);
+  const dateLabel = state.selectedDate.replace(/-/g, '.');
+
+  if (dayEvents.length === 0) {
+    container.innerHTML = `
+      <h3>${dateLabel} 일정</h3>
+      <div class="no-events">등록된 일정이 없습니다</div>
+    `;
+    return;
+  }
+
+  let html = `<h3>${dateLabel} 일정</h3>`;
+  dayEvents.forEach(ev => {
+    const autoTag = ev.source !== 'manual' ? '<span class="auto-tag">자동감지</span>' : '';
+    const sourceIcon = ev.source === 'kakao' ? '💬' : ev.source === 'sms' ? '📱' : '';
+    html += `
+      <div class="event-card" style="border-left-color:${CATEGORY_COLORS[ev.category]}">
+        <div class="event-card-header">
+          <span class="event-category">${CATEGORY_LABELS[ev.category]}</span>
+          ${autoTag}
+        </div>
+        <div class="event-title">${ev.title}</div>
+        ${ev.time ? `<div class="event-time">⏰ ${ev.time}</div>` : ''}
+        ${ev.location ? `<div class="event-location">📍 ${ev.location}</div>` : ''}
+        <div class="event-creator">${sourceIcon} ${ev.creator === 'me' ? '내가 추가' : '지수님이 추가'}</div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+// ===== 감지됨 화면 =====
+function renderPendingList() {
+  const container = document.getElementById('pending-list');
+
+  if (state.pendingEvents.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📭</div>
+        <h3>감지된 일정이 없습니다</h3>
+        <p>SMS나 카카오톡에서 일정이 감지되면<br>여기에 표시됩니다</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+  state.pendingEvents.forEach((ev, idx) => {
+    const sourceLabel = ev.source === 'sms' ? 'SMS에서 감지' : '카카오톡에서 감지';
+    const confColor = ev.confidence >= 0.8 ? '#4ECDC4' : ev.confidence >= 0.6 ? '#FFEAA7' : '#FF6B6B';
+    html += `
+      <div class="pending-card" id="pending-${idx}">
+        <span class="source-tag">${sourceLabel}</span>
+        <div class="pending-title">${ev.title}</div>
+        <div class="pending-date">📅 ${ev.date} ${ev.time ? '⏰ ' + ev.time : ''}</div>
+        ${ev.location ? `<div class="pending-location">📍 ${ev.location}</div>` : ''}
+        <div class="original-msg">
+          <div class="original-label">원본 메시지:</div>
+          <div class="original-text">${ev.original.replace(/\n/g, '<br>')}</div>
+        </div>
+        <div class="confidence-bar">
+          <div class="confidence-fill" style="width:${ev.confidence*100}%;background:${confColor}"></div>
+        </div>
+        <div style="font-size:11px;color:#B2BEC3;margin-top:4px">파싱 신뢰도: ${Math.round(ev.confidence*100)}%</div>
+        <div class="action-row">
+          <button class="btn-dismiss" onclick="dismissPending(${idx})">무시</button>
+          <button class="btn-confirm" onclick="confirmPending(${idx})">캘린더에 추가</button>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function confirmPending(idx) {
+  const ev = state.pendingEvents[idx];
+  state.events.push({
+    id: 'new-' + Date.now(),
+    title: ev.title,
+    date: ev.date,
+    time: ev.time,
+    category: ev.category,
+    location: ev.location,
+    source: ev.source,
+    creator: 'me',
+  });
+  state.pendingEvents.splice(idx, 1);
+  updateBadge();
+  renderPendingList();
+  showToast(`✅ "${ev.title}" 일정이 캘린더에 추가되었습니다`);
+  renderCalendar();
+}
+
+function dismissPending(idx) {
+  const card = document.getElementById(`pending-${idx}`);
+  if (card) {
+    card.style.transition = 'all 0.3s';
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(100px)';
+  }
+  setTimeout(() => {
+    state.pendingEvents.splice(idx, 1);
+    updateBadge();
+    renderPendingList();
+  }, 300);
+}
+
+function updateBadge() {
+  const badge = document.getElementById('pending-badge');
+  if (state.pendingEvents.length > 0) {
+    badge.style.display = 'flex';
+    badge.textContent = state.pendingEvents.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ===== 파트너 화면 =====
+function renderPartnerScreen() {
+  const container = document.getElementById('partner-content');
+
+  if (state.isPartnerConnected) {
+    container.innerHTML = `
+      <div class="connected-view">
+        <div class="avatar-pair">
+          <div class="avatar avatar-me">민</div>
+          <span class="heart">❤️</span>
+          <div class="avatar avatar-partner">지</div>
+        </div>
+        <div class="connected-title">지수님과 연결됨</div>
+        <div class="connected-sub">캘린더를 함께 공유하고 있습니다</div>
+        <div style="margin-top:30px;text-align:center">
+          <div style="font-size:13px;color:#636E72;margin-bottom:12px">공유 캘린더 통계</div>
+          <div style="display:flex;gap:20px;justify-content:center">
+            <div style="text-align:center">
+              <div style="font-size:28px;font-weight:800;color:#4A90D9">${state.events.length}</div>
+              <div style="font-size:11px;color:#636E72">전체 일정</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:28px;font-weight:800;color:#4ECDC4">${state.events.filter(e=>e.source!=='manual').length}</div>
+              <div style="font-size:11px;color:#636E72">자동 감지</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:28px;font-weight:800;color:#FF6B6B">${state.events.filter(e=>e.creator==='partner').length}</div>
+              <div style="font-size:11px;color:#636E72">지수님 일정</div>
+            </div>
+          </div>
+        </div>
+        <button style="margin-top:40px;padding:10px 24px;border-radius:10px;background:#f0f0f0;border:none;color:#FF6B6B;font-size:13px;font-weight:600;cursor:pointer" onclick="disconnectPartner()">연결 해제</button>
+      </div>
+    `;
+  } else {
+    container.innerHTML = `
+      <div class="partner-header">
+        <h1>파트너 연결</h1>
+        <p>부부가 함께 사용할 공유 캘린더를 만들어보세요</p>
+      </div>
+      <div class="partner-section">
+        <div class="section-title">새 공유 캘린더 만들기</div>
+        <div class="section-desc">캘린더를 만들고 초대 코드를 파트너에게 보내주세요</div>
+        <div id="create-area">
+          <button class="btn-create" onclick="createCalendar()">캘린더 만들기</button>
+        </div>
+      </div>
+      <div class="divider">
+        <div class="divider-line"></div>
+        <span class="divider-text">또는</span>
+        <div class="divider-line"></div>
+      </div>
+      <div class="partner-section">
+        <div class="section-title">초대 코드로 참여하기</div>
+        <div class="section-desc">파트너에게 받은 6자리 코드를 입력하세요</div>
+        <div class="code-input-row">
+          <input class="code-input" maxlength="6" placeholder="ABC123" oninput="this.value=this.value.toUpperCase()">
+          <button class="btn-join" onclick="joinCalendar()">참여</button>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function createCalendar() {
+  const code = 'K7M2X9';
+  document.getElementById('create-area').innerHTML = `
+    <div class="code-display">
+      <div class="code-label">초대 코드</div>
+      <div class="code-text">${code}</div>
+      <div class="code-hint">이 코드를 파트너에게 알려주세요</div>
+    </div>
+  `;
+  showToast('🎉 공유 캘린더가 생성되었습니다!');
+}
+
+function joinCalendar() {
+  state.isPartnerConnected = true;
+  renderPartnerScreen();
+  showToast('💑 지수님과 캘린더가 연결되었습니다!');
+}
+
+function disconnectPartner() {
+  state.isPartnerConnected = false;
+  renderPartnerScreen();
+}
+
+// ===== SMS 데모 =====
+function showSMSDemo() {
+  document.getElementById('sms-demo').classList.add('show');
+  state.selectedDemoMsg = null;
+  document.querySelectorAll('.sms-message-box').forEach(b => b.classList.remove('selected'));
+  document.getElementById('demo-parse-btn').disabled = true;
+}
+
+function closeSMSDemo() {
+  document.getElementById('sms-demo').classList.remove('show');
+}
+
+function selectDemoMsg(el, idx) {
+  document.querySelectorAll('.sms-message-box').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  state.selectedDemoMsg = idx;
+  document.getElementById('demo-parse-btn').disabled = false;
+}
+
+function parseDemoMsg() {
+  if (state.selectedDemoMsg === null) return;
+
+  const msg = DEMO_MESSAGES[state.selectedDemoMsg];
+  state.pendingEvents.push(msg);
+  updateBadge();
+  closeSMSDemo();
+  showToast(`🔔 "${msg.title}" 일정이 감지되었습니다!`);
+}
+
+// ===== 토스트 알림 =====
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ===== 초기화 =====
+renderCalendar();
+renderPartnerScreen();
+updateBadge();
+
+// 오늘 날짜 자동 선택
+const today = new Date();
+const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+selectDate(todayStr);
+</script>
+</body>
+</html>
