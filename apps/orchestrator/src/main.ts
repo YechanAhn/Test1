@@ -1,13 +1,21 @@
-// Orchestrator entrypoint — Global Scheduler & Coordinator
-// 책임: Routing / Load Balance / Health Check / Scaling
-// 구현은 M5 마일스톤에서 채운다. 본 파일은 부팅 골격.
-
-import { TOPICS } from "@alrgo/core-types";
+import { InMemoryEventBus } from "@alrgo/event-bus";
+import { MemorySnapshotStore } from "@alrgo/stores";
+import { Orchestrator } from "./Orchestrator.js";
 
 async function main() {
-  // TODO(M3): event bus connect
-  // TODO(M5): routing/balance/health/scaling 모듈 부팅
-  console.log(`[orchestrator] booting. topics root=${Object.keys(TOPICS).join(",")}`);
+  // 로컬 부트 데모. M8 에서 Cloud Functions/Firestore 연결로 교체.
+  const bus = new InMemoryEventBus();
+  const snapshots = new MemorySnapshotStore();
+  const orch = new Orchestrator(bus, snapshots, {
+    ownerUid: process.env.ALLOWED_UID ?? "local-uid",
+    shardIds: ["shard-1", "shard-2"],
+    standbyShardIds: ["shard-standby"],
+    heartbeatDeadlineMs: 2000,
+    killDeadlineMs: 10_000,
+    evaluateIntervalMs: 1000,
+  });
+  orch.start();
+  console.log("[orchestrator] started", orch.router.activeShards());
 }
 
 main().catch((err) => {

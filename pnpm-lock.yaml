@@ -38,9 +38,15 @@ importers:
       '@alrgo/core-types':
         specifier: workspace:*
         version: link:../../packages/core-types
+      '@alrgo/event-bus':
+        specifier: workspace:*
+        version: link:../../packages/event-bus
       '@alrgo/safety':
         specifier: workspace:*
         version: link:../../packages/safety
+      '@alrgo/stores':
+        specifier: workspace:*
+        version: link:../../packages/stores
 
   apps/shard:
     dependencies:

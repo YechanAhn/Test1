@@ -14,6 +14,8 @@
   },
   "dependencies": {
     "@alrgo/core-types": "workspace:*",
-    "@alrgo/safety": "workspace:*"
+    "@alrgo/safety": "workspace:*",
+    "@alrgo/event-bus": "workspace:*",
+    "@alrgo/stores": "workspace:*"
   }
 }
