@@ -12,6 +12,7 @@
     "deploy": "firebase deploy --only functions"
   },
   "dependencies": {
-    "@alrgo/core-types": "workspace:*"
+    "@alrgo/core-types": "workspace:*",
+    "@alrgo/stores": "workspace:*"
   }
 }

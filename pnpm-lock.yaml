@@ -32,6 +32,9 @@ importers:
       '@alrgo/core-types':
         specifier: workspace:*
         version: link:../../packages/core-types
+      '@alrgo/stores':
+        specifier: workspace:*
+        version: link:../../packages/stores
 
   apps/orchestrator:
     dependencies:

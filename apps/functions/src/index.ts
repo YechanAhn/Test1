@@ -1,6 +1,13 @@
 // Cloud Functions entry — Orchestration Logic / Webhooks-Jobs / Notifications
-// 실 구현은 M8 마일스톤. 본 파일은 export 자리만 잡아둔다.
+// 실 deploy 시 firebase-functions 의 onCall/onSchedule 어댑터를 이 비즈니스 로직에 묶는다.
 
-export const commands = {};      // 명령 검증/발행
-export const jobs = {};          // 스냅샷 GC, 일일 리포트
-export const notifications = {}; // Telegram / Discord 라우팅
+export { validateCommand, type ValidationError } from "./commands/validate.js";
+export {
+  routeNotification,
+  fromRiskBreach,
+  buildDailyReport,
+  type Channel,
+  type NotifiableEvent,
+  type NotificationDeps,
+} from "./notifications/router.js";
+export { evaluateSnapshotGc, type GcPolicy, type GcResult } from "./jobs/snapshotGc.js";
