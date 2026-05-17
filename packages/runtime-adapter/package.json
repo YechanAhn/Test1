@@ -1,0 +1,21 @@
+{
+  "name": "@alrgo/runtime-adapter",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@alrgo/core-types": "workspace:*",
+    "@alrgo/exchange": "workspace:*",
+    "@alrgo/event-bus": "workspace:*",
+    "@alrgo/v7-engine": "workspace:*",
+    "@alrgo/safety": "workspace:*"
+  }
+}

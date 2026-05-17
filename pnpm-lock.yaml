@@ -74,6 +74,24 @@ importers:
         specifier: workspace:*
         version: link:../core-types
 
+  packages/runtime-adapter:
+    dependencies:
+      '@alrgo/core-types':
+        specifier: workspace:*
+        version: link:../core-types
+      '@alrgo/event-bus':
+        specifier: workspace:*
+        version: link:../event-bus
+      '@alrgo/exchange':
+        specifier: workspace:*
+        version: link:../exchange
+      '@alrgo/safety':
+        specifier: workspace:*
+        version: link:../safety
+      '@alrgo/v7-engine':
+        specifier: workspace:*
+        version: link:../v7-engine
+
   packages/safety:
     dependencies:
       '@alrgo/core-types':
@@ -81,6 +99,12 @@ importers:
         version: link:../core-types
 
   packages/stores:
+    dependencies:
+      '@alrgo/core-types':
+        specifier: workspace:*
+        version: link:../core-types
+
+  packages/v7-engine:
     dependencies:
       '@alrgo/core-types':
         specifier: workspace:*
