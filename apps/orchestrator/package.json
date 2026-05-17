@@ -1,0 +1,19 @@
+{
+  "name": "@alrgo/orchestrator",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/main.ts",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@alrgo/core-types": "workspace:*",
+    "@alrgo/safety": "workspace:*"
+  }
+}

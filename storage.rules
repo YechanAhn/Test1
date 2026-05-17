@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// ALRGO Solo Bot — Logs / Backups / Artifacts
+// 클라이언트는 읽기 불가, 서버(Admin SDK) 만 쓰기/읽기.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

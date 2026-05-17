@@ -1,0 +1,55 @@
+rules_version = '2';
+
+// ALRGO Solo Bot — 단일 UID 화이트리스트
+// ALLOWED_UID 는 환경에서 주입 후 functions/admin SDK 를 통해서만 우회 가능
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.uid == resource.data.ownerUid;
+    }
+
+    function isAllowedCreator() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    // 1) User → System
+    match /commands/{commandId} {
+      allow read:   if isOwner();
+      allow create: if isAllowedCreator();
+      // 명령은 사후 변조 금지(감사 무결성). 상태 변화는 별도 result subcollection.
+      allow update, delete: if false;
+
+      match /result/{resultId} {
+        // 결과는 서버(Admin SDK) 만 기록 → 클라이언트 쓰기 금지
+        allow read:  if isOwner();
+        allow write: if false;
+      }
+    }
+
+    // 2) Runtime → System
+    match /states/{shardId} {
+      // 읽기는 소유자만, 쓰기는 서버(Admin SDK) 전용
+      allow read:  if request.auth != null
+                   && request.auth.uid != null
+                   && resource.data.ownerUid == request.auth.uid;
+      allow write: if false;
+    }
+
+    // 3) History / Audit
+    match /snapshots/{snapshotId} {
+      allow read:  if request.auth != null
+                   && resource.data.ownerUid == request.auth.uid;
+      allow write: if false;
+    }
+
+    // 그 외 모든 경로 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
