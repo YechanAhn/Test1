@@ -59,6 +59,15 @@ importers:
 
   packages/core-types: {}
 
+  packages/event-bus:
+    dependencies:
+      '@alrgo/core-types':
+        specifier: workspace:*
+        version: link:../core-types
+      '@alrgo/safety':
+        specifier: workspace:*
+        version: link:../safety
+
   packages/exchange:
     dependencies:
       '@alrgo/core-types':
